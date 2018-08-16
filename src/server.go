@@ -11,28 +11,19 @@ package main
 
 import (
 	"github.com/BurntSushi/toml"
-	"io/ioutil"
+	_ "io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"os"
-	"time"
 )
 
 type Config struct {
-	Cnamemaster string
+	Cnamemaster string // unused
 	Subdomain   string
 	Domain      string
 	User        string
 	Pass        string
-}
-
-func getIp(requestType string) string {
-	res, _ := http.Get("http://" + requestType + ".myexternalip.com/raw")
-	defer res.Body.Close()
-
-	ip, _ := ioutil.ReadAll(res.Body)
-	return string(ip[:])
 }
 
 func readConfigfile() Config {
@@ -49,19 +40,13 @@ func readConfigfile() Config {
 	return config
 }
 
-func dyndns(ipv4 string, ipv6 string, config Config) {
-	t := time.Now()
-	formattedTime := t.Format(time.RFC3339)
+func dyndns(text string, config Config) {
 	v := url.Values{}
 	v.Add("s_login", config.User)
 	v.Add("s_pw", config.Pass)
 	v.Add("command", "UpdateDNSZone")
 	v.Add("dnszone", config.Domain+".")
-	v.Add("rr0", config.Domain+". 3600 IN CNAME "+config.Cnamemaster+".")
-	v.Add("rr1", "*."+config.Domain+". 3600 IN CNAME "+config.Cnamemaster+".")
-	v.Add("rr2", config.Subdomain+". 600 IN A "+ipv4)
-	v.Add("rr3", config.Subdomain+". 600 IN AAAA "+ipv6)
-	v.Add("rr4", config.Subdomain+". 600 IN TXT "+formattedTime)
+	v.Add("rr0", config.Subdomain+". 600 IN TXT "+text)
 	resp, err := http.PostForm("https://api.domainreselling.de/api/call.cgi", v)
 	if err != nil {
 		log.Fatal(err)
@@ -71,19 +56,5 @@ func dyndns(ipv4 string, ipv6 string, config Config) {
 
 func main() {
 	config := readConfigfile()
-	lastIpv4 := ""
-	lastIpv6 := ""
-	for {
-		ipv4 := getIp("ipv4")
-		ipv6 := getIp("ipv6")
-		if lastIpv4 != ipv4 || lastIpv6 != ipv6 {
-			log.Print("Ipv4 or Ipv6 altered")
-			log.Print("IPv4: " + ipv4)
-			log.Print("IPv6: " + ipv6)
-			lastIpv4 = ipv4
-			lastIpv6 = ipv6
-			dyndns(ipv4, ipv6, config)
-		}
-		time.Sleep(1 * time.Minute)
-	}
+	dyndns("Test0123456789", config)
 }
