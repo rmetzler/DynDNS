@@ -10,8 +10,9 @@ package main
  */
 
 import (
+	"fmt"
 	"github.com/BurntSushi/toml"
-	_ "io/ioutil"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
@@ -51,6 +52,11 @@ func dyndns(text string, config Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	body, _ := ioutil.ReadAll(resp.Body)
+
+	fmt.Printf("%v\t%v", resp.Status, string(body))
+
 	defer resp.Body.Close()
 }
 
